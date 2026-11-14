@@ -1,0 +1,8 @@
+stages:
+  prepare_and_train:
+    cmd: python training/train.py
+    deps:
+      - data/raw_data.csv
+      - training/train.py
+    outs:
+      - training/model.joblib
