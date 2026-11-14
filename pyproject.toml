@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlops-ai-agent"
+version = "1.0.0"
+description = "Production-Ready MLOps AI Agent integrating DVC, MLflow, Airflow, and Kubernetes"
+authors = [{ name = "Abdullah Ahmad", email = "i233006@isb.nu.edu.pk" }]
+requires-python = ">=3.10"
+readme = "README.md"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+
+[tool.flake8]
+max-line-length = 120
+exclude = [".git", "__pycache__", "venv", ".venv", "mlruns", "mlartifacts"]
