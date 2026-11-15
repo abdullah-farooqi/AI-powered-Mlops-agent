@@ -13,6 +13,8 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -27,25 +29,32 @@ jobs:
 
     - name: Lint with Flake8
       run: |
-        # Strict linting gate (fails build on any style or logic error)
-        flake8 agent/ api/ training/ tests/
+        # Strict linting gate across all modules including dags and scripts
+        flake8 agent/ api/ training/ dags/ tests/ scripts/
 
     - name: Run Automated Pytest Suite with Coverage
       run: |
-        pytest -v --cov=agent --cov=api --cov-report=term --cov-report=xml tests/
+        pytest -v --cov=agent --cov=api --cov=training --cov-report=term --cov-report=xml tests/ api/
 
     - name: Validate Kubernetes Manifests
       run: |
+        # Validate manifest syntax via Python YAML parser
         python -c "
         import yaml
         manifests = [
             'kubernetes/namespace.yaml',
             'kubernetes/configmap.yaml',
             'kubernetes/deployment.yaml',
-            'kubernetes/service.yaml'
+            'kubernetes/service.yaml',
+            'kubernetes/failure_pod_crash.yaml'
         ]
         for f in manifests:
             with open(f) as stream:
                 yaml.safe_load(stream)
-            print(f'Validated Kubernetes manifest: {f}')
+            print(f'Validated YAML syntax: {f}')
         "
+        # Validate manifests client-side with kubectl dry-run
+        kubectl apply --dry-run=client -f kubernetes/namespace.yaml
+        kubectl apply --dry-run=client -f kubernetes/configmap.yaml
+        kubectl apply --dry-run=client -f kubernetes/deployment.yaml
+        kubectl apply --dry-run=client -f kubernetes/service.yaml

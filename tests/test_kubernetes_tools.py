@@ -2,8 +2,9 @@ from unittest.mock import MagicMock
 from agent.tools.kubernetes_tools import (
     k8s_diagnose_unhealthy_pods,
     k8s_execute_cluster_action,
-    k8s_list_pods_and_deployments
+    k8s_list_pods_and_deployments,
 )
+
 
 def test_k8s_diagnose_unhealthy_pods_detects_crashloop_and_probe_failure(mocker):
     mock_pod = MagicMock()
@@ -34,10 +35,12 @@ def test_k8s_diagnose_unhealthy_pods_detects_crashloop_and_probe_failure(mocker)
     assert "CrashLoopBackOff" in issues_str
     assert "OOMKilled" in issues_str
 
+
 def test_k8s_mutation_requires_confirmation():
     res = k8s_execute_cluster_action("restart", "mlops-app", confirmed=False)
     assert res["status"] == "needs_confirmation"
     assert "requires explicit human confirmation" in res["message"]
+
 
 def test_k8s_mutation_executes_real_restart_when_confirmed(mocker):
     mock_apps = MagicMock()
@@ -48,10 +51,12 @@ def test_k8s_mutation_executes_real_restart_when_confirmed(mocker):
     assert res["action"] == "restart"
     assert mock_apps.patch_namespaced_deployment.called
 
+
 def test_k8s_mutation_rejects_unauthorized_action():
     res = k8s_execute_cluster_action("delete_deployment", "mlops-app", confirmed=True)
     assert res["status"] == "denied"
     assert "Unauthorized action" in res["error"]
+
 
 def test_k8s_read_tool_rejects_unauthorized_namespace():
     res = k8s_list_pods_and_deployments(namespace="kube-system")

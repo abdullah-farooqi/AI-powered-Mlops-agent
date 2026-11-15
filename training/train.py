@@ -12,6 +12,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
+
 def get_git_provenance(dvc_file_path: str = "data/raw_data.csv.dvc") -> dict:
     """Retrieve authentic Git commit and tag provenance associated with the tracked dataset."""
     commit_hash = "unknown_commit"
@@ -19,8 +20,7 @@ def get_git_provenance(dvc_file_path: str = "data/raw_data.csv.dvc") -> dict:
     try:
         # Get latest commit that touched the DVC pointer file
         res = subprocess.run(
-            ["git", "log", "-1", "--format=%H", "--", dvc_file_path],
-            capture_output=True, text=True, check=False
+            ["git", "log", "-1", "--format=%H", "--", dvc_file_path], capture_output=True, text=True, check=False
         )
         if res.returncode == 0 and res.stdout.strip():
             commit_hash = res.stdout.strip()
@@ -38,6 +38,7 @@ def get_git_provenance(dvc_file_path: str = "data/raw_data.csv.dvc") -> dict:
 
     return {"git_commit": commit_hash, "git_tag": tag_name}
 
+
 def get_dvc_file_md5(dvc_file_path: str = "data/raw_data.csv.dvc") -> str:
     """Extract authentic MD5 checksum recorded inside the .dvc pointer file."""
     if os.path.exists(dvc_file_path):
@@ -50,6 +51,7 @@ def get_dvc_file_md5(dvc_file_path: str = "data/raw_data.csv.dvc") -> str:
             pass
     return "untracked_in_dvc"
 
+
 def compute_file_md5(filepath: str) -> str:
     """Calculate actual md5 hash of the data file on disk."""
     if not os.path.exists(filepath):
@@ -59,6 +61,7 @@ def compute_file_md5(filepath: str) -> str:
         while chunk := f.read(8192):
             hasher.update(chunk)
     return hasher.hexdigest()
+
 
 def resolve_mlflow_tracking_uri() -> str:
     uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
@@ -75,12 +78,13 @@ def resolve_mlflow_tracking_uri() -> str:
             return fallback_uri
     return uri
 
+
 def train_and_log(
     n_estimators: int = 50,
     max_depth: int = 4,
     data_path: str = "data/raw_data.csv",
     run_name: str = "rf-classifier-run",
-    register_model: bool = True
+    register_model: bool = True,
 ):
     experiment_name = os.getenv("MLFLOW_EXPERIMENT_NAME", "mlops-model-training")
     tracking_uri = resolve_mlflow_tracking_uri()
@@ -142,16 +146,15 @@ def train_and_log(
 
         # Register to MLflow Model Registry when requested
         model_reg_name = "iris_classifier" if register_model else None
-        mlflow.sklearn.log_model(
-            sk_model=clf,
-            artifact_path="model",
-            registered_model_name=model_reg_name
-        )
+        mlflow.sklearn.log_model(sk_model=clf, artifact_path="model", registered_model_name=model_reg_name)
 
         print(f"Run completed: ID={run.info.run_id}")
         print(f"Metrics: Accuracy={acc:.4f}, F1={f1:.4f}, Precision={prec:.4f}, Recall={rec:.4f}")
-        print(f"Provenance: DVC Version={dvc_tag}, Git Commit={provenance['git_commit'][:8]}, DVC MD5={recorded_dvc_md5}")
+        print(
+            f"Provenance: DVC Version={dvc_tag}, Git Commit={provenance['git_commit'][:8]}, DVC MD5={recorded_dvc_md5}"
+        )
         return run.info.run_id
+
 
 def main():
     parser = argparse.ArgumentParser(description="MLOps Training & Provenance Pipeline")
@@ -167,8 +170,9 @@ def main():
         max_depth=args.max_depth,
         data_path=args.data_path,
         run_name=args.run_name,
-        register_model=args.register
+        register_model=args.register,
     )
+
 
 if __name__ == "__main__":
     main()

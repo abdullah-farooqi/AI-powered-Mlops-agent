@@ -2,6 +2,7 @@ import pytest
 import os
 import tempfile
 
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():
     """Sets environment variables for testing."""
@@ -9,6 +10,7 @@ def setup_test_environment():
     os.environ["AIRFLOW_BASE_URL"] = "http://localhost:8080/api/v1"
     os.environ["DATA_PATH"] = "data/raw_data.csv"
     os.environ["ALLOWED_NAMESPACE"] = "mlops-app"
+
 
 @pytest.fixture
 def sample_csv():

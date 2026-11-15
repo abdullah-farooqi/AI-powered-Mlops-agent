@@ -31,7 +31,7 @@ services:
   # Apache Airflow Standalone
   # -------------------------------------------------------------
   airflow:
-    image: apache/airflow:2.9.3-python3.11
+    image: apache/airflow:2.10.2-python3.11
     container_name: mlops-airflow
     restart: unless-stopped
     ports:
@@ -44,12 +44,18 @@ services:
       - _AIRFLOW_WWW_USER_CREATE=true
       - _AIRFLOW_WWW_USER_USERNAME=admin
       - _AIRFLOW_WWW_USER_PASSWORD=admin
+      - _PIP_ADDITIONAL_REQUIREMENTS=mlflow==2.18.0 scikit-learn pandas "protobuf<5.0.0"
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
     volumes:
       - ./dags:/opt/airflow/dags
       - ./data:/opt/airflow/data
       - ./training:/opt/airflow/training
+      - ./agent:/opt/airflow/agent:ro
+      - ./mlruns:/opt/airflow/mlruns
       - ./requirements.txt:/opt/airflow/requirements.txt
     command: standalone
+    depends_on:
+      - mlflow
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 15s

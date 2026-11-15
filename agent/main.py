@@ -8,6 +8,7 @@ from agent.orchestrator import MLOpsAgentOrchestrator
 
 console = Console()
 
+
 def display_response(resp):
     console.print(Panel(f"[bold cyan]User Request:[/bold cyan] {resp.query}", expand=False))
 
@@ -33,25 +34,42 @@ def display_response(resp):
     # Known Facts (Empirical Evidence)
     if resp.known_facts:
         facts_md = "\n".join([f"- {f}" for f in resp.known_facts])
-        console.print(Panel(Markdown(facts_md), title="[bold green]Known Facts (Evidence-Based)[/bold green]", border_style="green"))
+        console.print(
+            Panel(
+                Markdown(facts_md), title="[bold green]Known Facts (Evidence-Based)[/bold green]", border_style="green"
+            )
+        )
 
     # Uncertainties & Tool Warnings
     if resp.uncertainties:
         unc_md = "\n".join([f"- {u}" for u in resp.uncertainties])
-        console.print(Panel(Markdown(unc_md), title="[bold yellow]Uncertainties & Tool Warnings[/bold yellow]", border_style="yellow"))
+        console.print(
+            Panel(
+                Markdown(unc_md),
+                title="[bold yellow]Uncertainties & Tool Warnings[/bold yellow]",
+                border_style="yellow",
+            )
+        )
 
     # Recommended Actions
     if resp.recommended_actions:
         actions_md = "\n".join([f"- {a}" for a in resp.recommended_actions])
-        console.print(Panel(Markdown(actions_md), title="[bold blue]Recommended Next Actions[/bold blue]", border_style="blue"))
+        console.print(
+            Panel(Markdown(actions_md), title="[bold blue]Recommended Next Actions[/bold blue]", border_style="blue")
+        )
 
     # Synthesis Narrative
-    console.print(Panel(resp.final_narrative, title="[bold white]Agent Synthesis & Diagnosis[/bold white]", border_style="white"))
+    console.print(
+        Panel(resp.final_narrative, title="[bold white]Agent Synthesis & Diagnosis[/bold white]", border_style="white")
+    )
+
 
 def main():
     parser = argparse.ArgumentParser(description="Production-Ready MLOps AI Agent CLI")
     parser.add_argument("--query", type=str, help="Single natural language request to evaluate", default=None)
-    parser.add_argument("--confirm", action="store_true", help="Automatically confirm state-changing actions", default=False)
+    parser.add_argument(
+        "--confirm", action="store_true", help="Automatically confirm state-changing actions", default=False
+    )
     args = parser.parse_args()
 
     agent = MLOpsAgentOrchestrator()
@@ -79,7 +97,13 @@ def main():
             # Interactive Human-in-the-Loop Confirmation Gate
             if resp.confirmation_required:
                 act = resp.confirmation_required
-                confirm_input = input(f"\n[CONFIRMATION GATE] Authorize action '{act.get('action') or act.get('tool')}'? (yes/no): ").strip().lower()
+                confirm_input = (
+                    input(
+                        f"\n[CONFIRMATION GATE] Authorize action '{act.get('action') or act.get('tool')}'? (yes/no): "
+                    )
+                    .strip()
+                    .lower()
+                )
                 if confirm_input in ["y", "yes"]:
                     console.print("[cyan]User confirmed. Re-executing with authorization...[/cyan]")
                     resp_confirmed = agent.process_query(user_input, user_confirmation=True)
@@ -90,6 +114,7 @@ def main():
         except (KeyboardInterrupt, EOFError):
             console.print("\n[bold yellow]Session ended.[/bold yellow]")
             break
+
 
 if __name__ == "__main__":
     main()

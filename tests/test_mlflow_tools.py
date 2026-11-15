@@ -1,9 +1,6 @@
 from unittest.mock import MagicMock
-from agent.tools.mlflow_tools import (
-    mlflow_get_best_run,
-    mlflow_compare_runs,
-    mlflow_get_registered_model_info
-)
+from agent.tools.mlflow_tools import mlflow_get_best_run, mlflow_compare_runs, mlflow_get_registered_model_info
+
 
 def test_mlflow_get_best_run_enforces_finished_status(mocker):
     mock_run = MagicMock()
@@ -26,6 +23,7 @@ def test_mlflow_get_best_run_enforces_finished_status(mocker):
     assert res["best_run_id"] == "run_finished_1"
     assert res["best_metric_value"] == 0.92
     assert res["production_ready_candidate"] is True
+
 
 def test_mlflow_compare_runs_ranking(mocker):
     r1 = MagicMock()
@@ -53,6 +51,7 @@ def test_mlflow_compare_runs_ranking(mocker):
     assert res["status"] == "success"
     assert res["recommended_candidate"] == "run_2"
     assert "run_2" in res["recommendation_reasoning"]
+
 
 def test_mlflow_get_registered_model_info_error_on_failure(mocker):
     mock_client = MagicMock()

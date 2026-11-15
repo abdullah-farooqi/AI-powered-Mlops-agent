@@ -10,6 +10,7 @@ MODEL_PATH = os.getenv("MODEL_PATH", "training/model.joblib")
 MODEL = None
 APP_READY = False
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Modern FastAPI lifespan context manager for startup and shutdown."""
@@ -31,15 +32,18 @@ async def lifespan(app: FastAPI):
     MODEL = None
     APP_READY = False
 
+
 app = FastAPI(
     title="MLOps Model Inference Service",
     version=os.getenv("APP_VERSION", "1.0.0"),
     description="Containerized prediction API with readiness/liveness health probes",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
+
 
 class PredictionRequest(BaseModel):
     features: List[float] = Field(..., example=[5.1, 3.5, 1.4, 0.2], description="Feature vector for inference")
+
 
 class PredictionResponse(BaseModel):
     prediction: int
@@ -47,10 +51,12 @@ class PredictionResponse(BaseModel):
     model_version: str
     app_version: str
 
+
 @app.get("/health", status_code=status.HTTP_200_OK, tags=["Probes"])
 def liveness_probe():
     """Liveness probe: returns 200 if container process is running."""
     return {"status": "alive", "service": "mlops-prediction-api"}
+
 
 @app.get("/ready", status_code=status.HTTP_200_OK, tags=["Probes"])
 def readiness_probe():
@@ -58,9 +64,10 @@ def readiness_probe():
     if not APP_READY or MODEL is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Application initialization in progress or model artifact not loaded"
+            detail="Application initialization in progress or model artifact not loaded",
         )
     return {"status": "ready", "model_loaded": True}
+
 
 @app.get("/version", tags=["Metadata"])
 def get_version():
@@ -69,8 +76,9 @@ def get_version():
         "app_version": os.getenv("APP_VERSION", "1.0.0"),
         "model_name": os.getenv("MODEL_NAME", "iris_classifier"),
         "model_version": os.getenv("MODEL_VERSION", "v1.0.0"),
-        "environment": os.getenv("ENVIRONMENT", "production")
+        "environment": os.getenv("ENVIRONMENT", "production"),
     }
+
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Inference"])
 def predict(request: PredictionRequest):
@@ -78,11 +86,11 @@ def predict(request: PredictionRequest):
     if not APP_READY or MODEL is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Model is not ready to serve predictions. Ensure model.joblib is trained and mounted."
+            detail="Model is not ready to serve predictions. Ensure model.joblib is trained and mounted.",
         )
-    
+
     features = np.array(request.features).reshape(1, -1)
-    
+
     try:
         pred = int(MODEL.predict(features)[0])
         probs = MODEL.predict_proba(features)[0].tolist() if hasattr(MODEL, "predict_proba") else None
@@ -93,5 +101,5 @@ def predict(request: PredictionRequest):
         prediction=pred,
         probabilities=probs,
         model_version=os.getenv("MODEL_VERSION", "v1.0.0"),
-        app_version=os.getenv("APP_VERSION", "1.0.0")
+        app_version=os.getenv("APP_VERSION", "1.0.0"),
     )

@@ -6,8 +6,9 @@ from typing import Dict, Any, Optional
 
 APPROVED_COMMAND_PREFIXES = {
     "dvc": {"status", "diff", "version"},
-    "git": {"status", "log", "rev-parse", "describe", "show"}
+    "git": {"status", "log", "rev-parse", "describe", "show"},
 }
+
 
 def _run_safe_command(cmd_str: str) -> Dict[str, Any]:
     """Execute whitelisted subprocess commands with strict argument parsing and security checks."""
@@ -21,17 +22,17 @@ def _run_safe_command(cmd_str: str) -> Dict[str, Any]:
 
     binary = parts[0]
     if binary not in APPROVED_COMMAND_PREFIXES:
-        return {
-            "status": "error",
-            "error": f"Security violation: Binary '{binary}' is not permitted."
-        }
+        return {"status": "error", "error": f"Security violation: Binary '{binary}' is not permitted."}
 
     # Find the first non-option argument (subcommand)
     subcommand = next((p for p in parts[1:] if not p.startswith("-")), None)
     if subcommand not in APPROVED_COMMAND_PREFIXES[binary]:
         return {
             "status": "error",
-            "error": f"Security violation: Subcommand '{subcommand}' for '{binary}' is not in approved whitelist {APPROVED_COMMAND_PREFIXES[binary]}."
+            "error": (
+                f"Security violation: Subcommand '{subcommand}' for '{binary}' "
+                f"is not in whitelist {APPROVED_COMMAND_PREFIXES[binary]}."
+            ),
         }
 
     # Block dangerous redirection, output flags, or arbitrary execution
@@ -45,12 +46,13 @@ def _run_safe_command(cmd_str: str) -> Dict[str, Any]:
             "status": "success" if res.returncode == 0 else "error",
             "returncode": res.returncode,
             "stdout": res.stdout.strip(),
-            "stderr": res.stderr.strip()
+            "stderr": res.stderr.strip(),
         }
     except subprocess.TimeoutExpired:
         return {"status": "error", "error": f"Command '{cmd_str}' timed out after 10 seconds."}
     except Exception as e:
         return {"status": "error", "error": str(e)}
+
 
 def dvc_list_tracked_data() -> Dict[str, Any]:
     """Task 1.1: Identify all datasets and files tracked by DVC in the workspace."""
@@ -61,20 +63,23 @@ def dvc_list_tracked_data() -> Dict[str, Any]:
         for file in files:
             if file.endswith(".dvc"):
                 data_target = os.path.join(root, file[:-4])
-                tracked_items.append({
-                    "dvc_pointer": os.path.join(root, file),
-                    "data_file": data_target,
-                    "exists_locally": os.path.exists(data_target),
-                    "file_size_bytes": os.path.getsize(data_target) if os.path.exists(data_target) else 0
-                })
+                tracked_items.append(
+                    {
+                        "dvc_pointer": os.path.join(root, file),
+                        "data_file": data_target,
+                        "exists_locally": os.path.exists(data_target),
+                        "file_size_bytes": os.path.getsize(data_target) if os.path.exists(data_target) else 0,
+                    }
+                )
 
     has_dvc_yaml = os.path.exists("dvc.yaml")
     return {
         "status": "success",
         "tracked_files_count": len(tracked_items),
         "tracked_datasets": tracked_items,
-        "dvc_yaml_present": has_dvc_yaml
+        "dvc_yaml_present": has_dvc_yaml,
     }
+
 
 def dvc_get_dataset_version(dataset_path: str = "data/raw_data.csv", run_id: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -86,6 +91,7 @@ def dvc_get_dataset_version(dataset_path: str = "data/raw_data.csv", run_id: Opt
     if run_id:
         try:
             from agent.tools.mlflow_tools import mlflow_get_run_details
+
             run_res = mlflow_get_run_details(run_id)
             if run_res.get("status") == "success":
                 tags = run_res.get("tags", {})
@@ -97,7 +103,7 @@ def dvc_get_dataset_version(dataset_path: str = "data/raw_data.csv", run_id: Opt
                     "dvc_md5_hash": tags.get("dvc_data_hash", "unknown"),
                     "actual_data_hash": tags.get("actual_data_hash", "unknown"),
                     "git_commit": tags.get("git_commit", "unknown"),
-                    "dataset_rows": tags.get("dataset_rows", "unknown")
+                    "dataset_rows": tags.get("dataset_rows", "unknown"),
                 }
         except Exception as e:
             return {"status": "error", "error": f"Failed retrieving provenance for run '{run_id}': {e}"}
@@ -138,24 +144,23 @@ def dvc_get_dataset_version(dataset_path: str = "data/raw_data.csv", run_id: Opt
         "git_commit": git_commit,
         "git_tag": git_tag,
         "dvc_md5_hash": dvc_md5,
-        "data_exists": os.path.exists(dataset_path)
+        "data_exists": os.path.exists(dataset_path),
     }
+
 
 def dvc_detect_changes() -> Dict[str, Any]:
     """Task 1.3: Detect whether tracked data has changed. Returns explicit error if DVC fails."""
     res = _run_safe_command("dvc status")
     if res.get("status") != "success":
-        return {
-            "status": "error",
-            "error": f"DVC status inspection failed: {res.get('stderr') or res.get('error')}"
-        }
+        return {"status": "error", "error": f"DVC status inspection failed: {res.get('stderr') or res.get('error')}"}
     output = res.get("stdout", "")
     has_changes = "modified" in output.lower() or "not in cache" in output.lower() or "deleted" in output.lower()
     return {
         "status": "success",
         "data_has_changed": has_changes,
-        "dvc_status_output": output if output else "Data is clean and matches DVC index."
+        "dvc_status_output": output if output else "Data is clean and matches DVC index.",
     }
+
 
 def dvc_compare_versions(commit_a: str, commit_b: str, target_path: str = "data/raw_data.csv") -> Dict[str, Any]:
     """
@@ -170,22 +175,28 @@ def dvc_compare_versions(commit_a: str, commit_b: str, target_path: str = "data/
     res_b = _run_safe_command(cmd_b)
 
     if res_a.get("status") != "success":
-        return {"status": "error", "error": f"Could not retrieve {dvc_file} at commit '{commit_a}': {res_a.get('stderr')}"}
+        return {
+            "status": "error",
+            "error": f"Could not retrieve {dvc_file} at commit '{commit_a}': {res_a.get('stderr')}",
+        }
     if res_b.get("status") != "success":
-        return {"status": "error", "error": f"Could not retrieve {dvc_file} at commit '{commit_b}': {res_b.get('stderr')}"}
+        return {
+            "status": "error",
+            "error": f"Could not retrieve {dvc_file} at commit '{commit_b}': {res_b.get('stderr')}",
+        }
 
     def _extract_md5_and_size(content: str):
         md5_match = re.search(r"md5:\s*(\S+)", content)
         size_match = re.search(r"size:\s*(\d+)", content)
         return {
             "md5": md5_match.group(1) if md5_match else "unknown",
-            "size": int(size_match.group(1)) if size_match else 0
+            "size": int(size_match.group(1)) if size_match else 0,
         }
 
     meta_a = _extract_md5_and_size(res_a.get("stdout", ""))
     meta_b = _extract_md5_and_size(res_b.get("stdout", ""))
 
-    identical = (meta_a["md5"] == meta_b["md5"])
+    identical = meta_a["md5"] == meta_b["md5"]
 
     return {
         "status": "success",
@@ -195,8 +206,13 @@ def dvc_compare_versions(commit_a: str, commit_b: str, target_path: str = "data/
         "meta_a": meta_a,
         "meta_b": meta_b,
         "data_identical": identical,
-        "summary": "Datasets are identical." if identical else f"Dataset modified: hash changed from {meta_a['md5'][:8]} to {meta_b['md5'][:8]}."
+        "summary": (
+            "Datasets are identical."
+            if identical
+            else f"Dataset modified: hash changed from {meta_a['md5'][:8]} to {meta_b['md5'][:8]}."
+        ),
     }
+
 
 def dvc_explain_reproduction(target_version: str) -> Dict[str, Any]:
     """Task 1.5: Explain exact reproducible commands to checkout a previous dataset version."""
@@ -206,7 +222,7 @@ def dvc_explain_reproduction(target_version: str) -> Dict[str, Any]:
         "instructions": [
             f"1. Checkout target Git commit/tag: git checkout {target_version}",
             "2. Pull versioned data binaries from DVC remote: dvc checkout (or dvc pull)",
-            "3. Verify data checksum matches: dvc status"
+            "3. Verify data checksum matches: dvc status",
         ],
-        "safe_reproduction_command": f"git checkout {target_version} && dvc checkout"
+        "safe_reproduction_command": f"git checkout {target_version} && dvc checkout",
     }

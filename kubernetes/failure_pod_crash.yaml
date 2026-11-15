@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlops-prediction-deployment
+  namespace: mlops-app
+  labels:
+    app: mlops-prediction-api
+    status: injected-failure
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mlops-prediction-api
+  template:
+    metadata:
+      labels:
+        app: mlops-prediction-api
+    spec:
+      containers:
+      - name: api-container
+        image: python:3.11-slim
+        command: ["python", "-c", "import sys; print('FATAL: Missing dependency / broken model artifact'); sys.exit(1)"]
+        ports:
+        - containerPort: 8000
