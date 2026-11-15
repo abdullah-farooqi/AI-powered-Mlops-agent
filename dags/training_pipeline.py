@@ -1,7 +1,13 @@
 from datetime import datetime, timedelta
 import os
+import sys
 import logging
 from airflow import DAG
+
+# Ensure project root is in sys.path
+for p in ["/opt/airflow", "."]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 # Compatible with both Airflow 2 and Airflow 3 operator paths
 try:

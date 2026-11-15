@@ -69,15 +69,7 @@ class MockLLMProvider:
 
         # 2. Airflow Specific Queries
         if ("fail" in q or "error" in q) and ("task" in q or "tasks" in q or "stage" in q):
-            tool_calls.append({"name": "airflow_get_failed_tasks", "args": {"dag_id": "ml_training_pipeline"}})
-            if "log" in q or "logs" in q:
-                tool_calls.append(
-                    {
-                        "name": "airflow_get_task_logs",
-                        "args": {"dag_id": "ml_training_pipeline", "run_id": "latest", "task_id": "quality_gate"},
-                    }
-                )
-            return tool_calls
+            return [{"name": "airflow_get_failed_tasks", "args": {"dag_id": "ml_training_pipeline"}}]
 
         if "task log" in q or "task logs" in q or "airflow log" in q:
             return [
@@ -486,7 +478,26 @@ class MLOpsAgentOrchestrator:
                     known_facts.append(f"Airflow DAGs registered: {data.get('dags_count')} available.")
                 elif tool_name == "airflow_get_failed_tasks":
                     fc = data.get("failed_count", 0)
+                    failed_list = data.get("failed_tasks", [])
                     known_facts.append(f"Airflow failed task count: {fc}.")
+                    if failed_list and ("log" in q_lower or "logs" in q_lower):
+                        top = failed_list[0]
+                        tid = top.get("task_id")
+                        rid = data.get("run_id")
+                        t_try = top.get("try_number", 1)
+                        log_res = self.execute_tool(
+                            "airflow_get_task_logs",
+                            {
+                                "dag_id": data.get("dag_id", "ml_training_pipeline"),
+                                "run_id": rid,
+                                "task_id": tid,
+                                "try_number": t_try,
+                            },
+                        )
+                        tool_results.append(log_res)
+                        if log_res.status == "success" and log_res.data:
+                            tail = log_res.data.get("logs_tail", "").strip()
+                            known_facts.append(f"Failed task '{tid}' log excerpt: {tail[-250:]}")
                 elif tool_name == "dvc_compare_versions":
                     known_facts.append(f"DVC version comparison: {data.get('summary')}")
                 elif tool_name == "dvc_explain_reproduction":

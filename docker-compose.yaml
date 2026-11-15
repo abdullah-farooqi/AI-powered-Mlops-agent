@@ -9,7 +9,7 @@ services:
     container_name: mlops-mlflow
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "5060:5000"
     environment:
       - MLFLOW_TRACKING_URI=http://0.0.0.0:5000
     volumes:
@@ -18,7 +18,8 @@ services:
     command: >
       mlflow server
       --backend-store-uri file:///mlflow/mlruns
-      --default-artifact-root /mlflow/mlartifacts
+      --artifacts-destination /mlflow/mlartifacts
+      --serve-artifacts
       --host 0.0.0.0
       --port 5000
     healthcheck:
@@ -44,7 +45,7 @@ services:
       - _AIRFLOW_WWW_USER_CREATE=true
       - _AIRFLOW_WWW_USER_USERNAME=admin
       - _AIRFLOW_WWW_USER_PASSWORD=admin
-      - _PIP_ADDITIONAL_REQUIREMENTS=mlflow==2.18.0 scikit-learn pandas "protobuf<5.0.0"
+      - _PIP_ADDITIONAL_REQUIREMENTS=mlflow==2.18.0 scikit-learn pandas protobuf<5.0.0
       - MLFLOW_TRACKING_URI=http://mlflow:5000
     volumes:
       - ./dags:/opt/airflow/dags
