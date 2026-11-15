@@ -148,15 +148,17 @@ def dvc_get_dataset_version(dataset_path: str = "data/raw_data.csv", run_id: Opt
     }
 
 
-def dvc_detect_changes() -> Dict[str, Any]:
+def dvc_detect_changes(target_file: str = "data/raw_data.csv.dvc") -> Dict[str, Any]:
     """Task 1.3: Detect whether tracked data has changed. Returns explicit error if DVC fails."""
-    res = _run_safe_command("dvc status")
+    cmd = f"dvc status {target_file}" if os.path.exists(target_file) else "dvc status"
+    res = _run_safe_command(cmd)
     if res.get("status") != "success":
         return {"status": "error", "error": f"DVC status inspection failed: {res.get('stderr') or res.get('error')}"}
     output = res.get("stdout", "")
     has_changes = "modified" in output.lower() or "not in cache" in output.lower() or "deleted" in output.lower()
     return {
         "status": "success",
+        "target_file": target_file,
         "data_has_changed": has_changes,
         "dvc_status_output": output if output else "Data is clean and matches DVC index.",
     }

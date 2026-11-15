@@ -400,12 +400,13 @@ class MLOpsAgentOrchestrator:
         # Default: Use Smart Tool Selector across all 22 schemas
         return self.mock_llm.select_tools(query, [])
 
-    def process_query(self, query: str, confirmed: bool = False) -> AgentStructuredResponse:
+    def process_query(self, query: str, confirmed: bool = False, **kwargs) -> AgentStructuredResponse:
         """
         AI Agent Multi-Tool Reasoning Engine:
         Executes tool-calling loop, correlates multi-system evidence,
         enforces safety confirmation gates, and guarantees evidence-based answers.
         """
+        confirmed = confirmed or kwargs.get("user_confirmation", False)
         tool_results: List[ToolExecutionResult] = []
         known_facts: List[str] = []
         uncertainties: List[str] = []
@@ -491,7 +492,8 @@ class MLOpsAgentOrchestrator:
                 elif tool_name == "dvc_explain_reproduction":
                     known_facts.append(f"DVC reproduction command: {data.get('safe_reproduction_command')}")
                 elif tool_name == "mlflow_compare_runs":
-                    known_facts.append(f"MLflow run ranking: {data.get('defensible_recommendation')}")
+                    reasoning_text = data.get("recommendation_reasoning") or data.get("defensible_recommendation")
+                    known_facts.append(f"MLflow run comparison: {reasoning_text}")
                 elif tool_name == "mlflow_get_registered_model_info":
                     known_facts.append(f"MLflow registered model info: {data.get('model_name')}.")
                 elif tool_name == "k8s_inspect_services":
