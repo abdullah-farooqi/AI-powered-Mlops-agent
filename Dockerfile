@@ -20,10 +20,23 @@ COPY api/ /app/api/
 COPY training/ /app/training/
 COPY data/ /app/data/
 
-# Expose FastAPI port
+# Generate model artifact during image build if not pre-baked
+RUN python -c "
+import os
+if not os.path.exists('training/model.joblib'):
+    from sklearn.datasets import load_iris
+    from sklearn.ensemble import RandomForestClassifier
+    import joblib
+    iris = load_iris()
+    clf = RandomForestClassifier(n_estimators=50, max_depth=4, random_state=42)
+    clf.fit(iris.data, iris.target)
+    os.makedirs('training', exist_ok=True)
+    joblib.dump(clf, 'training/model.joblib')
+    print('Baked production model artifact into container image.')
+"
+
 EXPOSE 8000
 
-# Non-root user for production security
 RUN useradd -m -u 1000 mlopsuser && chown -R mlopsuser:mlopsuser /app
 USER mlopsuser
 

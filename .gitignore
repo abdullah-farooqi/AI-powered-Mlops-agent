@@ -9,7 +9,7 @@ mlartifacts/
 .dvc/tmp/
 logs/
 .pytest_cache/
-.coverage
+.coverage*
 htmlcov/
 dist/
 build/

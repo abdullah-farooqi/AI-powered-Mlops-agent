@@ -16,10 +16,13 @@ spec:
       labels:
         app: mlops-prediction-api
         version: "1.0.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
     spec:
       containers:
       - name: inference-service
-        image: mlops-prediction-api:latest
+        image: mlops-prediction-api:1.0.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
