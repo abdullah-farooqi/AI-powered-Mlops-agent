@@ -6,7 +6,9 @@ FROM python:3.11-slim AS builder
 WORKDIR /build
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/install/bin:${PATH}" \
+    PYTHONPATH="/install/lib/python3.11/site-packages:${PYTHONPATH}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \

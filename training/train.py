@@ -144,9 +144,12 @@ def train_and_log(
         os.makedirs("training", exist_ok=True)
         joblib.dump(clf, "training/model.joblib")
 
-        # Register to MLflow Model Registry when requested
-        model_reg_name = "iris_classifier" if register_model else None
-        mlflow.sklearn.log_model(sk_model=clf, artifact_path="model", registered_model_name=model_reg_name)
+        # Register to MLflow Model Registry when requested and supported
+        model_reg_name = "iris_classifier" if (register_model and not tracking_uri.startswith("file://")) else None
+        try:
+            mlflow.sklearn.log_model(sk_model=clf, artifact_path="model", registered_model_name=model_reg_name)
+        except Exception as e:
+            print(f"Warning: MLflow model logging/registration fallback: {e}")
 
         print(f"Run completed: ID={run.info.run_id}")
         print(f"Metrics: Accuracy={acc:.4f}, F1={f1:.4f}, Precision={prec:.4f}, Recall={rec:.4f}")
