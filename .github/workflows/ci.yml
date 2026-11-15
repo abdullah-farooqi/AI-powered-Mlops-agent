@@ -38,7 +38,6 @@ jobs:
 
     - name: Validate Kubernetes Manifests
       run: |
-        # Validate manifest syntax via Python YAML parser
         python -c "
         import yaml
         manifests = [
@@ -48,13 +47,11 @@ jobs:
             'kubernetes/service.yaml',
             'kubernetes/failure_pod_crash.yaml'
         ]
-        for f in manifests:
-            with open(f) as stream:
-                yaml.safe_load(stream)
-            print(f'Validated YAML syntax: {f}')
+        for path in manifests:
+            with open(path, 'r') as f:
+                doc = yaml.safe_load(f)
+            assert 'apiVersion' in doc, f'{path} missing apiVersion'
+            assert 'kind' in doc, f'{path} missing kind'
+            assert 'metadata' in doc and 'name' in doc['metadata'], f'{path} missing metadata.name'
+            print(f'Successfully validated Kubernetes manifest structure: {path} ({doc[\"kind\"]}: {doc[\"metadata\"][\"name\"]})')
         "
-        # Validate manifests client-side with kubectl dry-run (turn off cluster schema validation when no cluster is running)
-        kubectl apply --dry-run=client --validate=false -f kubernetes/namespace.yaml
-        kubectl apply --dry-run=client --validate=false -f kubernetes/configmap.yaml
-        kubectl apply --dry-run=client --validate=false -f kubernetes/deployment.yaml
-        kubectl apply --dry-run=client --validate=false -f kubernetes/service.yaml
