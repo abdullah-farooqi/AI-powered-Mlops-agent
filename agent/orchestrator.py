@@ -353,6 +353,38 @@ class MLOpsAgentOrchestrator:
         Executes function calling. Uses external LLM API if key is present,
         or falls back to the deterministic tool-calling provider.
         """
+        # Check for Gemini API key
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        if gemini_key:
+            try:
+                import urllib.request
+
+                model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+                url = (
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
+                )
+                headers = {"Content-Type": "application/json"}
+                gemini_tools = [{"function_declarations": TOOL_SCHEMAS}]
+                payload = {
+                    "contents": [{"role": "user", "parts": [{"text": query}]}],
+                    "tools": gemini_tools,
+                }
+                req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers)
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    resp_data = json.loads(resp.read().decode("utf-8"))
+                    calls = []
+                    candidates = resp_data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        for part in parts:
+                            if "functionCall" in part:
+                                fn = part["functionCall"]
+                                calls.append({"name": fn["name"], "args": fn.get("args", {})})
+                    if calls:
+                        return calls
+            except Exception as e:
+                logger.warning(f"Gemini function calling fallback: {e}")
+
         # Check for OpenAI API key
         openai_key = os.getenv("OPENAI_API_KEY")
         if openai_key:
