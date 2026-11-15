@@ -103,7 +103,7 @@ class MockLLMProvider:
         if "data change" in q or "data drift" in q or "dvc status" in q or "dataset modified" in q:
             return [{"name": "dvc_detect_changes", "args": {}}]
 
-        if "dataset version" in q or "data version" in q or "dvc version" in q:
+        if "version" in q and ("dataset" in q or "data" in q or "dvc" in q or "commit" in q):
             return [{"name": "dvc_get_dataset_version", "args": {"dataset_path": "data/raw_data.csv"}}]
 
         # 4. MLflow Specific Queries
